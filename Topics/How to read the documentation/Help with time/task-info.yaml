@@ -1,0 +1,9 @@
+type: code
+files:
+- name: main.py
+  visible: true
+  text: '# use built-in help system here'
+  learner_created: false
+feedback_link: https://hyperskill.org/learn/step/12127#comment
+status: Solved
+record: -1
