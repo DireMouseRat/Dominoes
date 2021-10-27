@@ -39,7 +39,7 @@ def print_dominoes(dominoes: list):
 
 # Initialize Variables and Seed Random
 done = False
-Stock = list()
+Stock = Dominoes()
 Domino_Set = set()
 C_Dominoes = list()
 P_Dominoes = list()
@@ -55,7 +55,7 @@ for i in range(7):
 # Loop until a Snake is found
 while not done:
     # Create a copy of the main set and shuffle it
-    Stock = list(Domino_Set)
+    Stock = Dominoes(Domino_Set)
     random.shuffle(Stock)
 
     # Pop pieces off the stack and give to the computer and the player
