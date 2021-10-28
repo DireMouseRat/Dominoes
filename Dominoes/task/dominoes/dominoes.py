@@ -6,10 +6,10 @@ class Dominoes(list):
         super().__init__()
 
     def __str__(self):
-        doms = str()
+        domino_string = str()
         for d in self:
-            doms += str(d) + ', '
-        return '[' + doms[:-2] + ']'
+            domino_string += str(d) + ', '
+        return '[' + domino_string[:-2] + ']'
 
     def highest_double(self):
         hd = Domino()
@@ -62,17 +62,27 @@ while not Ready_To_Start:
     if C_Highest > P_Highest:
         Snake.append(C_Highest)
         Computer.remove(C_Highest)
-        Status = "player"
+        Status = "Status: It's your turn to make a move. Enter your command."
         Ready_To_Start = True
     elif P_Highest > C_Highest:
         Snake.append(P_Highest)
         Player.remove(P_Highest)
-        Status = "computer"
+        Status = "Status: Computer is about to make a move. Press Enter to continue..."
         Ready_To_Start = True
+    else:
+        Stock = Dominoes()
+        Computer = Dominoes()
+        Player = Dominoes()
 
-# Print results
-print("Stock pieces:", Stock)
-print("Computer pieces:", Computer)
-print("Player pieces:", Player)
-print("Domino snake:", Snake)
-print("Status:", Status)
+# Print menu
+print('=' * 70)
+print("Stock size:", len(Stock))
+print("Computer pieces:", len(Computer))
+print()
+print(*Snake)
+print()
+print("Your pieces:")
+for i in range(len(Player)):
+    print(str(i + 1) + ':' + str(Player[i]))
+print()
+print(Status)

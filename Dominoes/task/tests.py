@@ -1,93 +1,337 @@
 from typing import List, Any
+from hstest import WrongAnswer
 from hstest.stage_test import StageTest
 from hstest.test_case import TestCase
 from hstest.check_result import CheckResult
 import ast
-from hstest import *
 
 
-class TestStage1(StageTest):
+class TestStage3(StageTest):
 
     def generate(self) -> List[TestCase]:
         return [
-            TestCase(),
-            TestCase(),
-            TestCase(),
-            TestCase(),
-            TestCase()
+            TestCase(stdin=[self.func1, (13, self.func2)],
+                     check_function=self.check_the_win),
+            TestCase(stdin=[self.func3, self.func4, self.func5, (3, self.func6),
+                            self.func7, self.func8, (35, self.func9)],
+                     check_function=self.check_the_lost),
         ]
 
-    def get_list(self, replyks):
-        ind = replyks.find('[')
+    current_status = ""
+    current_stock_size = 14
+    current_computer_pieces = 7
+    current_player_pieces = 6
+    current_domino_snake = []
+    left = [0, 0]
+    right = [0, 0]
+
+    def fill_the_snake(self, output, flag=False):
+        """Add a new tile to the snake"""
+        if flag:
+            snake = output
+        else:
+            snake = self.parse_the_output(output)[3]
         try:
-            return ast.literal_eval(replyks[ind:])
+            left = eval(snake[:6])
+            right = eval(snake[-6:])
+        except (NameError, SyntaxError):
+            raise WrongAnswer('Please, format your output correctly')
+        if left not in self.current_domino_snake:
+            self.current_domino_snake.insert(0, left)
+        if right not in self.current_domino_snake:
+            self.current_domino_snake.append(right)
+
+    def check_the_draw(self):
+        """Checks if the conditions for the draw are satisfied"""
+        first = self.current_domino_snake[0][0]
+        check = first == self.current_domino_snake[-1][1]
+        if check:
+            count = str(self.current_domino_snake).count(str(first))
+            if count == 8:
+                return True
+        return False
+
+    def get_the_computer_pieces(self, output):
+        """Get the amount of computer pieces"""
+        output_parsed = self.parse_the_output(output)
+        try:
+            len_comp_pieces = int([i.strip() for i in output_parsed[2].split(':')][-1])
+        except ValueError:
+            raise WrongAnswer("Make sure your output is formatted according to the examples")
+        return len_comp_pieces
+
+    def check_computer_pieces(self, output):
+        """Check if the amount is right"""
+        len_comp_pieces = self.get_the_computer_pieces(output)
+        if len_comp_pieces != self.current_computer_pieces:
+            return False
+        return True
+
+    def parse_the_output(self, output):
+        """Parse the output"""
+        out_parsed = [i.strip() for i in output.split('\n') if i]
+        return out_parsed
+
+    def get_the_stock(self, output):
+        """Get the player's stock"""
+        out_parsed = self.parse_the_output(output)
+        try_stock = [i for i in out_parsed if ':[' in i]
+        try:
+            the_stock = [ast.literal_eval(i[-6:]) for i in try_stock]
         except (ValueError, SyntaxError):
             raise WrongAnswer("An error occurred while processing your output.\n"
-                              "Please make sure that your program's output is formatted exactly as described.")
+                                       "Please make sure that your program's output is formatted exactly as described.")
+        return the_stock
 
-    def get_all_lists(self, replyk):
-        sp = self.get_list(replyk[0])
-        cp = self.get_list(replyk[1])
-        pp = self.get_list(replyk[2])
-        ds = self.get_list(replyk[3])
-        return sp, cp, pp, ds
+    def check_player_unique(self, output):
+        """Check that the player pieces are uniqe"""
 
-    def get_the_fish(self, computer_pieces, player_pieces, domino_snake):
-        status_check = 'computer' if len(computer_pieces) == 7 else 'player'
-        double_computer_pieces = sorted([i for i in computer_pieces if i[0] == i[1]], reverse=True)
-        double_player_pieces = sorted([i for i in player_pieces if i[0] == i[1]], reverse=True)
-        high_double_computer_piece = double_computer_pieces[0] if len(double_computer_pieces) > 0 else []
-        high_double_player_piece = double_player_pieces[0] if len(double_player_pieces) > 0 else []
-        maxes = sorted([domino_snake[0], high_double_computer_piece, high_double_player_piece], reverse=True)
-        return maxes[0], status_check
-
-    def check_nested_lists(self, list_to_check, list_name):
-        if not list_to_check or type(list_to_check) != list or type(list_to_check[0]) != list:
-            raise WrongAnswer("{0} list in your output is not a nested list. \n"
-                              "Please, make it a nested list.".format(list_name))
-
-    def count_unique(self, replyk):
-        sp, cp, pp, ds = self.get_all_lists(replyk)
-        self.check_nested_lists(sp, "Stock pieces")
-        self.check_nested_lists(cp, "Computer pieces")
-        self.check_nested_lists(pp, "Player pieces")
-        self.check_nested_lists(ds, "Domino snake")
-        sp += cp
-        sp += pp
-        sp += ds
-        sp = [tuple(i) for i in sp]
-        try:
-            return len(set(sp))
-        except:
+        uniq = self.get_the_stock(output)
+        len1 = len(uniq)
+        uniq = set([tuple(i) for i in uniq])
+        len2 = len(uniq)
+        if len1 != len2:
             return False
+        return True
 
-    def check(self, reply: list, attach: Any) -> CheckResult:
-        replyk = reply.strip().split('\n')
-        if len(replyk) != 5:
-            return CheckResult.wrong("Something's wrong")
-        stock_pieces, computer_pieces, player_pieces, domino_snake = self.get_all_lists(replyk)
-        if not self.count_unique(replyk):
-            return CheckResult.wrong("The full set is not right")
-        if len(stock_pieces) != 14:
-            return CheckResult.wrong("Stock pieces are not full")
-        if len(stock_pieces) + len(computer_pieces) + len(player_pieces) + len(domino_snake) != 28:
-            return CheckResult.wrong("The full set is not full")
-        if len(computer_pieces) + len(player_pieces) + len(domino_snake) != 14:
-            return CheckResult.wrong("The pieces played are not right")
-        if len(domino_snake) != 1:
-            return CheckResult.wrong("The domino snake should have exactly one piece")
+    def get_the_ends(self, output):
+        """Get the ends of the domino snake"""
         try:
-            domino_snake_check, status_check = self.get_the_fish(computer_pieces, player_pieces, domino_snake)
+            domino_snake = self.parse_the_output(output)[3]
+            self.left_end = ast.literal_eval(domino_snake[:6])
+            self.right_end = ast.literal_eval(domino_snake[-6:])
+        except (SyntaxError, ValueError, IndexError):
+            raise WrongAnswer("Make sure your output is formatted according to the examples")
         except Exception:
-            return CheckResult.wrong("Something wrong with output format! "
-                                     "Make sure your output format is the same as in examples!")
-        if domino_snake[0] != domino_snake_check:
-            return CheckResult.wrong("Domino snake is not right")
-        if status_check not in replyk[4]:
-            return CheckResult.wrong("Status is not right")
+            raise WrongAnswer("Some elements are missing from the snake")
 
+    def check_the_design(self, output):
+        """Check that the design is right"""
+
+        output_parsed = self.parse_the_output(output)
+        design = '=' * 70
+        if output_parsed[0] != design:
+            return False
+        return True
+
+    def get_stock_size(self, output):
+        """Get the stock size"""
+
+        output_parsed = self.parse_the_output(output)
+        try:
+            stock_size = int([i.strip() for i in output_parsed[1].split(':')][-1])
+        except ValueError:
+            raise WrongAnswer("Make sure your output is formatted according to the examples")
+        return stock_size
+
+    def check_stock_size(self, output):
+        """Check the stock size"""
+
+        stock_size = self.get_stock_size(output)
+        if stock_size != self.current_stock_size:
+            return False
+        return True
+
+    def check_the_status(self, output):
+        """Check if the status is correct"""
+
+        output_parsed = self.parse_the_output(output)
+        status_from_output = 'computer' if 'computer' in output_parsed[-1].lower() else 'player'
+        if status_from_output != self.current_status:
+            return False
+        return True
+
+    def check_the_snake(self, output):
+        """Check that the list in the snake is no longer than 6"""
+
+        snake = self.parse_the_output(output)[3]
+        br = snake.count('[')
+        if br > 6:
+            return False
+        return True
+
+    def check_the_move(self, output):
+        """Check the result when the computer made a move"""
+
+        if not self.check_the_design(output):
+            raise WrongAnswer("The design is not right")
+        if not self.check_stock_size(output):
+            raise WrongAnswer("The stock size is not right")
+        if not self.check_computer_pieces(output):
+            raise WrongAnswer("The amount of computer pieces is not right")
+        if not self.check_player_unique(output):
+            raise WrongAnswer("The player pieces are not unique")
+        if not self.check_the_status(output):
+            raise WrongAnswer("The result is not right")
+        if not self.check_the_snake(output):
+            raise WrongAnswer("Your snake is too long")
+        if 'computer is' in output.lower():
+            self.current_status = 'player'
+            return ''
+        else:
+            self.current_status = 'computer'
+            return '1'
+
+    def check_the_move_ver_2(self, output, to_fail=None):
+        """Check the result when the computer made a move"""
+
+        if not self.check_the_design(output):
+            raise WrongAnswer("The design is not right")
+        if not self.check_stock_size(output):
+            raise WrongAnswer("The stock size is not right")
+        if not self.check_computer_pieces(output):
+            raise WrongAnswer("The amount of computer pieces is not right")
+        if not self.check_player_unique(output):
+            raise WrongAnswer("The player pieces are not unique")
+        if not self.check_the_status(output):
+            raise WrongAnswer("The result is not right")
+        if not self.check_the_snake(output):
+            raise WrongAnswer("Your snake is too long")
+        if 'computer is' in output.lower():
+            self.current_status = 'player'
+            return ''
+        else:
+            self.current_status = 'computer'
+            if to_fail is not None:
+                return to_fail
+            else:
+                self.current_stock_size -= 1
+                return '0'
+
+    def set_the_currents(self, output):
+        """Too random, need to consider computer options"""
+
+        self.get_the_ends(output)
+        self.fill_the_snake(output)
+        if self.current_status == 'player':
+            stock_dif = abs(self.current_stock_size - self.get_stock_size(output))
+            comp_dif = abs(self.get_the_computer_pieces(output) - self.current_computer_pieces)
+            # if the computer took a piece from the stock
+            if stock_dif == 1 and comp_dif == 1:
+                self.current_computer_pieces += 1
+                self.current_stock_size -= 1
+            # if the computer made a move
+            elif comp_dif == 1 and stock_dif == 0:
+                self.current_computer_pieces -= 1
+        elif self.current_status == 'computer':
+            stock_dif = self.current_stock_size - self.get_stock_size(output)
+            player_dif = abs(len(self.get_the_stock(output)) - self.current_player_pieces)
+            if stock_dif == 1 and player_dif == 1:
+                self.current_player_pieces += 1
+                self.current_stock_size -= 1
+            # if the computer made a move
+            elif player_dif == 1 and stock_dif == 0:
+                self.current_player_pieces -= 1
+
+    """Test 1"""
+
+    def func1(self, output):
+        self.left = [0, 0]
+        self.right = [0, 0]
+        if "computer is" in output.lower():
+            self.current_stock_size = 14
+            self.current_player_pieces = 6
+            self.current_computer_pieces = 7
+            self.current_status = 'computer'
+        else:
+            self.current_stock_size = 14
+            self.current_player_pieces = 7
+            self.current_computer_pieces = 6
+            self.current_status = 'player'
+        self.set_the_currents(output)
+        return self.check_the_move(output)
+
+    def func2(self, output):
+        self.set_the_currents(output)
+        return self.check_the_move(output)
+
+    """Test 2"""
+
+    def func3(self, output):
+        if "computer is" in output.lower():
+            self.current_stock_size = 14
+            self.current_player_pieces = 6
+            self.current_computer_pieces = 7
+            self.current_status = 'computer'
+        else:
+            self.current_stock_size = 14
+            self.current_player_pieces = 7
+            self.current_computer_pieces = 6
+            self.current_status = 'player'
+        self.set_the_currents(output)
+        return self.check_the_move_ver_2(output)
+
+    def func4(self, output):
+        self.set_the_currents(output)
+        return self.check_the_move_ver_2(output, '-25')
+
+    def func5(self, output):
+        if self.current_status == 'computer':
+            if "invalid input. please try again." not in output.lower():
+                return CheckResult.wrong("The player should be informed about tne incorrect move")
+            return '1'
+        else:
+            self.set_the_currents(output)
+            return self.check_the_move_ver_2(output)
+
+    def func6(self, output):
+        self.set_the_currents(output)
+        return self.check_the_move_ver_2(output)
+
+    def func7(self, output):
+        self.set_the_currents(output)
+        return self.check_the_move_ver_2(output, 'hey there')
+
+    def func8(self, output):
+        if self.current_status == 'computer':
+            if "invalid input. please try again." not in output.lower():
+                return CheckResult.wrong("The player should be informed about tne incorrect move")
+            return '1'
+        else:
+            self.set_the_currents(output)
+            self.current_status = 'computer'
+            return self.check_the_move_ver_2(output)
+
+    def func9(self, output):
+        self.set_the_currents(output)
+        return self.check_the_move_ver_2(output)
+
+    def check_the_win(self, reply: list, attach: Any) -> CheckResult:
+        design = '=' * 70
+        reply_parsed = reply.split(design)
+        last = [i for i in reply_parsed[-1].split('\n') if i]
+        try:
+            self.fill_the_snake(last[2], True)
+            the_last = [i for i in reply_parsed[-1].strip().split('\n') if i]
+            comp_pieces = int([i.strip() for i in the_last[1].split(':') if i][-1])
+            check_the_pieces = ':[' in reply_parsed[-1] or comp_pieces == 0
+        except Exception:
+            return CheckResult.wrong('Your output is wrong! Make sure you print data like in examples!')
+        your_true_win = not check_the_pieces
+        you_won_status = "the game is over. you won" in the_last[-1].lower()
+        if your_true_win or you_won_status:
+            if not (your_true_win and you_won_status):
+                return CheckResult.wrong("Either the result or the status is wrong")
+        elif "the game is over. the computer won" not in the_last[-1].lower():
+            return CheckResult.wrong("The status is not right")
+        elif self.check_the_draw():
+            if "draw" not in the_last[-1].lower():
+                return CheckResult.wrong("The status is not right, it should be the draw")
+        return CheckResult.correct()
+
+    def check_the_lost(self, reply: list, attach: Any) -> CheckResult:
+        design = '=' * 70
+        reply_parsed = reply.split(design)
+        last = [i for i in reply_parsed[-1].split('\n') if i]
+        self.fill_the_snake(last[2], True)
+        the_last = [i for i in reply_parsed[-1].strip().split('\n') if i]
+        if "the game is over. the computer won" not in the_last[-1].lower():
+            return CheckResult.wrong("The status is not right")
+        elif self.check_the_draw():
+            if "draw" not in the_last[-1].lower():
+                return CheckResult.wrong("The status is not right, it should be the draw")
         return CheckResult.correct()
 
 
 if __name__ == '__main__':
-    TestStage1('dominoes.dominoes').run_tests()
+    TestStage3('dominoes.dominoes').run_tests()
