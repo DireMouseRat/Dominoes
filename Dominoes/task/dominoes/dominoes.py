@@ -5,9 +5,20 @@ class Dominoes(list):
     def __init__(self):
         super().__init__()
 
+    def __str__(self):
+        doms = str()
+        for d in self:
+            doms += str(d) + ', '
+        return '[' + doms[:-2] + ']'
+
+    def highest_double(self):
+        hd = Domino()
+        for d in self:
+            hd = d if d.double and d > hd else hd
+        return hd
+
 
 class Domino:
-
     def __init__(self, x=-1, y=0):
         self.x = x
         self.y = y
@@ -23,63 +34,45 @@ class Domino:
         return int(self) > int(other)
 
 
-def highest_double(dominoes: list):
-    hd = Domino()
-    for d in dominoes:
-        hd = d if d.double and d > hd else hd
-    return hd
-
-
-def print_dominoes(dominoes: list):
-    output = str()
-    for d in dominoes:
-        output += str(d) + " "
-    print(f"[{output}]")
-
-
 # Initialize Variables and Seed Random
-done = False
+Ready_To_Start = False
 Stock = Dominoes()
-Domino_Set = set()
-C_Dominoes = list()
-P_Dominoes = list()
-Snake = list()
+Computer = Dominoes()
+Player = Dominoes()
+Snake = Dominoes()
 Status = str()
 random.seed()
 
-# Create a set of all dominoes
-for i in range(7):
-    for j in range(i, 7):
-        Domino_Set.add(Domino(i, j))
-
 # Loop until a Snake is found
-while not done:
-    # Create a copy of the main set and shuffle it
-    Stock = Dominoes(Domino_Set)
+while not Ready_To_Start:
+    # Create the stock of all dominoes
+    for i in range(7):
+        for j in range(i, 7):
+            Stock.append(Domino(i, j))
     random.shuffle(Stock)
 
     # Pop pieces off the stack and give to the computer and the player
     for i in range(7):
-        C_Dominoes.append(Stock.pop())
-        P_Dominoes.append(Stock.pop())
+        Computer.append(Stock.pop())
+        Player.append(Stock.pop())
 
     # Get the starting snake piece
-    C_Highest = highest_double(C_Dominoes)
-    P_Highest = highest_double(P_Dominoes)
+    C_Highest = Computer.highest_double()
+    P_Highest = Player.highest_double()
     if C_Highest > P_Highest:
         Snake.append(C_Highest)
-        C_Dominoes.remove(C_Highest)
+        Computer.remove(C_Highest)
         Status = "player"
-        done = True
+        Ready_To_Start = True
     elif P_Highest > C_Highest:
         Snake.append(P_Highest)
-        P_Dominoes.remove(P_Highest)
+        Player.remove(P_Highest)
         Status = "computer"
-        done = True
+        Ready_To_Start = True
 
 # Print results
-print("Stock pieces:", *Stock)
-print("Computer pieces:", *C_Dominoes)
-print("Player pieces:", *P_Dominoes)
-print("Domino snake:", *Snake)
+print("Stock pieces:", Stock)
+print("Computer pieces:", Computer)
+print("Player pieces:", Player)
+print("Domino snake:", Snake)
 print("Status:", Status)
