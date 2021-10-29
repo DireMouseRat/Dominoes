@@ -1,36 +1,137 @@
 import random
 
 
-def shuffle(dominoes: list):
+class Dominoes(list):
+    def __init__(self):
+        super().__init__()
 
-    return dominoes
+    def __str__(self):
+        domino_string = str()
+        for d in self:
+            domino_string += str(d) + ', '
+        return '[' + domino_string[:-2] + ']'
 
-
-# Domino_Set = {(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (3, 3), (3, 4), (3, 5), (3, 6), (4, 4), (4, 5), (4, 6), (5, 5), (5, 6), (6, 6)}
-# Set of Tuples
-Domino_Set = set()
-for i in range(7):
-    for j in range(i, 7):
-        Domino_Set.add((i, j))
-print(len(Domino_Set))
-print(Domino_Set)
-
-# List of Shuffled Tuples
-Domino_Stack = list(Domino_Set)
-print(Domino_Stack)
-random.seed()
-random.shuffle(Domino_Stack)
-print(Domino_Stack)
+    def highest_double(self):
+        hd = Domino()
+        for d in self:
+            hd = d if d.double and d > hd else hd
+        return hd
 
 
-Stock_Pieces = Domino_Stack[:]
-Computer_Pieces = list()
-Player_Pieces = list()
-for i in range(7):
-    Computer_Pieces.append(Stock_Pieces.pop())
-    Player_Pieces.append(Stock_Pieces.pop())
+class Domino:
+    def __init__(self, x=-1, y=0):
+        self.x = x
+        self.y = y
+        self.double = x == y
 
-print(Stock_Pieces)
-print(Computer_Pieces)
-print(Player_Pieces)
-print(Domino_Stack)
+    def __str__(self):
+        return f"[{self.x}, {self.y}]"
+
+    def __int__(self):
+        return self.x + self.y
+
+    def __gt__(self, other):
+        return int(self) > int(other)
+
+
+class Game:
+    def __init__(self):
+        self.Stock = Dominoes()
+        self.Computer = Dominoes()
+        self.Player = Dominoes()
+        self.Snake = Dominoes()
+        self.Status = str()
+        self.Players_Turn = False
+        random.seed()
+
+    def setup_board(self):
+        # Loop until a Snake is found
+        ready_to_start = False
+        while not ready_to_start:
+            # Create the stock of all dominoes
+            for i in range(7):
+                for j in range(i, 7):
+                    self.Stock.append(Domino(i, j))
+            random.shuffle(self.Stock)
+
+            # Pop pieces off the stack and give to the computer and the player
+            for i in range(7):
+                self.Computer.append(self.Stock.pop())
+                self.Player.append(self.Stock.pop())
+
+            # Get the starting snake piece
+            c_highest = self.Computer.highest_double()
+            p_highest = self.Player.highest_double()
+            if c_highest > p_highest:
+                self.Snake.append(c_highest)
+                self.Computer.remove(c_highest)
+                self.set_players_turn()
+                ready_to_start = True
+            elif p_highest > c_highest:
+                self.Snake.append(p_highest)
+                self.Player.remove(p_highest)
+                self.set_computers_turn()
+                ready_to_start = True
+            else:  # No doubles were found, restart
+                self.Stock = Dominoes()
+                self.Computer = Dominoes()
+                self.Player = Dominoes()
+
+    def game_loop(self):
+        while not self.game_over():
+            self.print_board()
+            if self.Players_Turn:
+                self.players_turn()
+            else:
+                self.computers_turn()
+
+    def print_board(self):
+        print('=' * 70)
+        print("Stock size:", len(self.Stock))
+        print("Computer pieces:", len(self.Computer))
+        self.print_snake()
+        print("Your pieces:")
+        for i in range(len(self.Player)):
+            print(str(i + 1) + ':' + str(self.Player[i]))
+        print()
+        print(self.Status)
+
+    def players_turn(self):
+        # Loop for valid input
+        # Play piece
+        # Set computers turn
+        pass
+
+    def computers_turn(self):
+        # Loop for valid input
+        # Play random piece
+        # Set to players turn
+        pass
+
+    def game_over(self):
+        if len(self.Player) is 0:
+            return True
+        elif len(self.Computer) is 0:
+            return True
+        # [Check for draw]
+        return False
+
+    def set_players_turn(self):
+        self.Status = "Status: It's your turn to make a move. Enter your command."
+        self.Players_Turn = True
+
+    def set_computers_turn(self):
+        self.Status = "Status: Computer is about to make a move. Press Enter to continue..."
+        self.Players_Turn = False
+
+    def print_results(self):
+        pass
+
+    def print_snake(self):
+        pass
+
+# Start the game
+Game = Game()
+Game.setup_board()
+Game.game_loop()
+Game.print_results()
