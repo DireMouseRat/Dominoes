@@ -17,6 +17,16 @@ class Dominoes(list):
             hd = d if d.double and d > hd else hd
         return hd
 
+    def empty(self):
+        return len(self) == 0
+
+    def count_digit(self, digit):
+        count = 0
+        for d in self:
+            count += 1 if d.x is digit else 0
+            count += 1 if d.y is digit else 0
+        return count
+
 
 class Domino:
     def __init__(self, x=-1, y=0):
@@ -36,13 +46,16 @@ class Domino:
 
 class Game:
     def __init__(self):
+        random.seed()
         self.Stock = Dominoes()
         self.Computer = Dominoes()
         self.Player = Dominoes()
         self.Snake = Dominoes()
         self.Status = str()
         self.Players_Turn = False
-        random.seed()
+        self.setup_board()
+        self.game_loop()
+        self.print_results()
 
     def setup_board(self):
         # Loop until a Snake is found
@@ -109,12 +122,8 @@ class Game:
         pass
 
     def game_over(self):
-        if len(self.Player) is 0:
-            return True
-        elif len(self.Computer) is 0:
-            return True
-        # [Check for draw]
-        return False
+        x = self.Player.empty
+        return self.Player.empty() or self.Computer.empty() or self.draw_condition()
 
     def set_players_turn(self):
         self.Status = "Status: It's your turn to make a move. Enter your command."
@@ -128,10 +137,16 @@ class Game:
         pass
 
     def print_snake(self):
-        pass
+        print()
+        print(*self.Snake)
+        print()
+
+    def draw_condition(self):
+        if self.Snake[0].x == self.Snake[-1].y:
+            if self.Snake.count_digit(self.Snake[0].x) == 8:
+                return True
+        return False
+
 
 # Start the game
-Game = Game()
-Game.setup_board()
-Game.game_loop()
-Game.print_results()
+Game()
