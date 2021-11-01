@@ -1,6 +1,10 @@
 import random
 
 
+def domino_score(domino):
+    return domino.score
+
+
 class Dominoes(list):
     def __init__(self):
         super().__init__()
@@ -20,15 +24,19 @@ class Dominoes(list):
     def empty(self):
         return len(self) == 0
 
-    def count_digit(self, digit):
+    def appearance_count(self, number):
         count = 0
         for d in self:
-            count += 1 if d.left is digit else 0
-            count += 1 if d.right is digit else 0
+            count += 1 if d.left is number else 0
+            count += 1 if d.right is number else 0
         return count
 
     def pop_random(self):
         return self.pop(random.randrange(0, len(self)))
+
+    def play(self, d):
+        self.remove(d)
+        return d
 
 
 class Domino:
@@ -36,6 +44,7 @@ class Domino:
         self.left = left
         self.right = right
         self.double = left == right
+        self.score = 0
 
     def __str__(self):
         return f"[{self.left}, {self.right}]"
@@ -85,12 +94,12 @@ class Game:
             if c_double > p_double:
                 self.Snake.append(c_double)
                 self.Computer.remove(c_double)
-                self.prep_players_turn()
+                self.prep_player_turn()
                 ready_to_start = True
             elif p_double > c_double:
                 self.Snake.append(p_double)
                 self.Player.remove(p_double)
-                self.prep_computers_turn()
+                self.prep_computer_turn()
                 ready_to_start = True
             # No doubles were found, restart
             else:
@@ -102,9 +111,9 @@ class Game:
         while not self.game_over():
             self.display_playing_field()
             if self.Players_Turn:
-                self.players_turn()
+                self.start_player_turn()
             else:
-                self.computers_turn()
+                self.start_computer_turn()
         # When the game ends, display the field one last time
         self.display_playing_field()
 
@@ -121,27 +130,39 @@ class Game:
         print()
         print(self.Status)
 
-    def players_turn(self):
+    def start_player_turn(self):
         legal_move = False
         while not legal_move:
-            move = self.get_players_move()
+            move = self.get_player_move()
             index = abs(move) - 1
-            try_domino = self.Player.index(index)
-            if move > 0:  # Try to append to Snake
-                self.Snake.append(self.Player.pop(index))
-            elif move < 0:  # Prepend to Snake
-                self.Snake.insert(0, self.Player.pop(index))
-            else:  # Take from Stock
-                self.Player.append(self.Stock.pop_random())
-        self.prep_computers_turn()
+            # Positive, try to append to Snake
+            if move > 0:
+                if self.Snake[-1].right == self.Player[index].left:  # Snake right digit equals Domino left digit
+                    self.Snake.append(self.Player.pop(index))  # Append to Snake
+                    legal_move = True
+                elif self.Snake[-1].right == self.Player[index].right:  # Snake right digit equals Domino right digit
+                    self.Player[index].rotate()  # Rotate the domino
+                    self.Snake.append(self.Player.pop(index))  # Append to Snake
+                    legal_move = True
+            # Negative, try to Prepend to Snake
+            elif move < 0:
+                if self.Snake[0].left == self.Player[index].left:  # Snake left digit equals Domino left digit
+                    self.Player[index].rotate()  # Rotate the domino
+                    self.Snake.insert(0, self.Player.pop(index))  # Prepend to the snake
+                    legal_move = True
+                elif self.Snake[0].left == self.Player[index].right:  # Snake left digit equals Domino right digit
+                    self.Snake.insert(0, self.Player.pop(index))  # Prepend to the snake
+                    legal_move = True
+            # Take from Stock
+            else:
+                if len(self.Stock) > 0:
+                    self.Player.append(self.Stock.pop_random())
+                legal_move = True
+            if not legal_move:
+                print('Illegal move. Please try again.')
+        self.prep_computer_turn()
 
-    def append_to_snake(self, domino):
-        return False
-
-    def prepend_to_snake(self, domino):
-        return False
-
-    def get_players_move(self):
+    def get_player_move(self):
         move = int()
         menu_length = len(self.Player)
         valid_input = False
@@ -156,13 +177,42 @@ class Game:
                 print("Invalid Input. Please try again.")
         return move
 
-    def computers_turn(self):
+    def start_computer_turn(self):
         input()  # Press Enter to Continue...
-        if random.choice([True, False]):  # Append to Snake
-            self.Snake.append(self.Computer.pop_random())
-        else:  # Prepend to Snake
-            self.Snake.insert(0, self.Computer.pop_random())
-        self.prep_players_turn()
+
+        # AI scores each domino in its hand
+        # Each key is a Number (0 - 6), and the value is the count of appearances of that Number
+        key_appearances = dict()
+        for i in range(0, 7):
+            key_appearances[i] = self.Snake.appearance_count(i) + self.Computer.appearance_count(i)
+        # A Domino's score is equal to its left Number count plus its right Number count
+        for d in self.Computer:
+            d.score = key_appearances[d.left] + key_appearances[d.right]
+        # Sort the Computer hand by domino score with the highest value first
+        self.Computer.sort(key=domino_score, reverse=True)
+
+        starting_length = len(self.Computer)
+        for d in self.Computer:
+            # Try to append to Snake
+            if self.Snake[-1].right == d.left:  # Snake right digit equals Domino left digit
+                self.Snake.append(self.Computer.play(d))  # Append to Snake
+                break
+            elif self.Snake[-1].right == d.right:  # Snake right digit equals Domino right digit
+                d.rotate()  # Rotate the domino
+                self.Snake.append(self.Computer.play(d))  # Append to Snake
+                break
+            # Try to Prepend to Snake
+            elif self.Snake[0].left == d.left:  # Snake left digit equals Domino left digit
+                d.rotate()  # Rotate the domino
+                self.Snake.insert(0, self.Computer.play(d))  # Prepend to the snake
+                break
+            elif self.Snake[0].left == d.right:  # Snake left digit equals Domino right digit
+                self.Snake.insert(0, self.Computer.play(d))  # Prepend to the snake
+                break
+        # Take from Stock if a piece wasn't played
+        if len(self.Computer) == starting_length:
+            self.Computer.append(self.Stock.pop_random())
+        self.prep_player_turn()
 
     def game_over(self):
         if self.Player.empty():
@@ -176,11 +226,11 @@ class Game:
             return True
         return False
 
-    def prep_players_turn(self):
+    def prep_player_turn(self):
         self.Status = "Status: It's your turn to make a move. Enter your command."
         self.Players_Turn = True
 
-    def prep_computers_turn(self):
+    def prep_computer_turn(self):
         self.Status = "Status: Computer is about to make a move. Press Enter to continue..."
         self.Players_Turn = False
 
@@ -200,7 +250,7 @@ class Game:
     def draw_condition(self):
         first = self.Snake[0].left
         last = self.Snake[-1].right
-        if first == last and self.Snake.count_digit(first) == 8:
+        if first == last and self.Snake.appearance_count(first) == 8:
             return True
         return False
 
