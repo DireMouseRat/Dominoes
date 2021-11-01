@@ -23,8 +23,8 @@ class Dominoes(list):
     def count_digit(self, digit):
         count = 0
         for d in self:
-            count += 1 if d.x is digit else 0
-            count += 1 if d.y is digit else 0
+            count += 1 if d.left is digit else 0
+            count += 1 if d.right is digit else 0
         return count
 
     def pop_random(self):
@@ -32,22 +32,25 @@ class Dominoes(list):
 
 
 class Domino:
-    def __init__(self, x=-1, y=0):
-        self.x = x
-        self.y = y
-        self.double = x == y
+    def __init__(self, left=-1, right=0):
+        self.left = left
+        self.right = right
+        self.double = left == right
 
     def __str__(self):
-        return f"[{self.x}, {self.y}]"
+        return f"[{self.left}, {self.right}]"
 
     def __int__(self):
-        return self.x + self.y
+        return self.left + self.right
 
     def __gt__(self, other):
         return int(self) > int(other)
 
     def __lt__(self, other):
         return int(self) < int(other)
+
+    def rotate(self):
+        self.left, self.right = self.right, self.left
 
 
 class Game:
@@ -119,6 +122,26 @@ class Game:
         print(self.Status)
 
     def players_turn(self):
+        legal_move = False
+        while not legal_move:
+            move = self.get_players_move()
+            index = abs(move) - 1
+            try_domino = self.Player.index(index)
+            if move > 0:  # Try to append to Snake
+                self.Snake.append(self.Player.pop(index))
+            elif move < 0:  # Prepend to Snake
+                self.Snake.insert(0, self.Player.pop(index))
+            else:  # Take from Stock
+                self.Player.append(self.Stock.pop_random())
+        self.prep_computers_turn()
+
+    def append_to_snake(self, domino):
+        return False
+
+    def prepend_to_snake(self, domino):
+        return False
+
+    def get_players_move(self):
         move = int()
         menu_length = len(self.Player)
         valid_input = False
@@ -131,13 +154,7 @@ class Game:
                     raise ValueError
             except ValueError:
                 print("Invalid Input. Please try again.")
-        if move > 0:  # Append to Snake
-            self.Snake.append(self.Player.pop(move - 1))
-        elif move < 0:  # Prepend to Snake
-            self.Snake.insert(0, self.Player.pop(abs(move) - 1))
-        else:  # Take from Stock
-            self.Player.append(self.Stock.pop_random())
-        self.prep_computers_turn()
+        return move
 
     def computers_turn(self):
         input()  # Press Enter to Continue...
@@ -181,8 +198,8 @@ class Game:
         print(snake)
 
     def draw_condition(self):
-        first = self.Snake[0].x
-        last = self.Snake[-1].y
+        first = self.Snake[0].left
+        last = self.Snake[-1].right
         if first == last and self.Snake.count_digit(first) == 8:
             return True
         return False
