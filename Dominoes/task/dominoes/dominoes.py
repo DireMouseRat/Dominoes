@@ -209,7 +209,7 @@ class Game:
                 self.Snake.insert(0, self.Computer.play(d))  # Prepend to the snake
                 break
         # Take from Stock if a piece wasn't played
-        if len(self.Computer) == starting_length:
+        if len(self.Computer) == starting_length and len(self.Stock) > 0:
             self.Computer.append(self.Stock.pop_random())
         self.prep_player_turn()
 
