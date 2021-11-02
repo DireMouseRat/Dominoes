@@ -236,15 +236,14 @@ class Game:
 
     def print_snake(self):
         snake = str()
-        length = len(self.Snake)
-        if length <= 6:
+        if len(self.Snake) <= 6:
             snake = str(self.Snake)
         else:
-            for i in range(0, 3):
-                snake += str(self.Snake[i])
+            for domino in self.Snake[0:3]:
+                snake += str(domino)
             snake += '...'
-            for i in range(length - 3, length):
-                snake += str(self.Snake[i])
+            for domino in self.Snake[-3:0]:
+                snake += str(domino)
         print(snake)
 
     def draw_condition(self):
