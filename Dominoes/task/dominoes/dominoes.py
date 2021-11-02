@@ -1,10 +1,6 @@
 import random
 
 
-def domino_score(domino):
-    return domino.score
-
-
 class Dominoes(list):
     def __init__(self):
         super().__init__()
@@ -60,6 +56,9 @@ class Domino:
 
     def rotate(self):
         self.left, self.right = self.right, self.left
+
+    def score(self):
+        return self.score
 
 
 class Game:
@@ -189,7 +188,7 @@ class Game:
         for d in self.Computer:
             d.score = key_appearances[d.left] + key_appearances[d.right]
         # Sort the Computer hand by domino score with the highest value first
-        self.Computer.sort(key=domino_score, reverse=True)
+        self.Computer.sort(key=Domino.score, reverse=True)
 
         starting_length = len(self.Computer)
         for d in self.Computer:
@@ -242,7 +241,7 @@ class Game:
             for domino in self.Snake[0:3]:
                 snake += str(domino)
             snake += '...'
-            for domino in self.Snake[-3:0]:
+            for domino in self.Snake[-3:]:
                 snake += str(domino)
         print(snake)
 
